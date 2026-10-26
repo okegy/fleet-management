@@ -20,3 +20,6 @@ yarn-error.log*
 
 # Deployment secrets
 deploy.secrets.env
+
+# Local test artifacts
+backend/cookies.txt

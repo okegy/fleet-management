@@ -117,11 +117,37 @@ async function seed() {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log('✅ Connected to MongoDB');
 
-  const org = await Organization.findOne({ slug: 'fleetflow-demo' });
-  if (!org) throw new Error('Demo organization missing — run node seed-local.js first');
+  // A fresh database (e.g. a hosted deployment) has no organization or users
+  // yet, so bootstrap them here. Existing data is left untouched.
+  let org = await Organization.findOne({ slug: 'fleetflow-demo' });
+  if (!org) {
+    org = await Organization.create({
+      name: 'FleetFlow Demo',
+      slug: 'fleetflow-demo',
+      email: 'ops@fleetflow.io',
+      phone: '+10000000000',
+      address: 'Demo HQ',
+      active: true,
+    });
+    console.log(`✅ Demo organization created: ${org.name}`);
+  }
+
+  for (const demoUser of [
+    { name: 'Demo Fleet Manager', email: 'admin@fleetflow.io', role: 'fleet_manager' },
+    { name: 'Demo Dispatcher', email: 'dispatcher@fleetflow.io', role: 'dispatcher' },
+  ]) {
+    const exists = await User.findOne({ email: demoUser.email });
+    if (exists) continue;
+    await User.create({
+      ...demoUser,
+      password: process.env.DEMO_USER_PASSWORD || 'FleetFlow@2026',
+      organizationId: org._id,
+    });
+    console.log(`✅ Demo user created: ${demoUser.email}`);
+  }
 
   const admin = await User.findOne({ email: 'admin@fleetflow.io' });
-  if (!admin) throw new Error('Demo admin user missing — run node seed-local.js first');
+  if (!admin) throw new Error('Demo admin user could not be created');
 
   const orgId = org._id;
   const createdBy = admin._id;

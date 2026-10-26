@@ -1,8 +1,13 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api';
-export const SOCKET_URL = (import.meta as any).env.VITE_SOCKET_URL || 'http://localhost:5000';
+const env = (import.meta as any).env;
+const API_URL = env.VITE_API_URL || 'http://localhost:5000/api';
+// An explicitly empty VITE_SOCKET_URL means "same origin": in production the
+// backend serves the app and the socket, so no cross-origin host is needed.
+const socketEnv = env.VITE_SOCKET_URL;
+export const SOCKET_URL =
+  socketEnv === undefined ? 'http://localhost:5000' : socketEnv || window.location.origin;
 
 const api = axios.create({
   baseURL: API_URL,

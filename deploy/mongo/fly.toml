@@ -1,0 +1,25 @@
+# Dedicated MongoDB for the deployed app.
+#
+# Runs the official image with a persistent Fly volume; only reachable over the
+# private network (no public services), so the API talks to it at
+# fleetflow-db.internal:27017.
+app = "fleetflow-db"
+primary_region = "bom"
+
+[build]
+  image = "mongo:7"
+
+[env]
+  MONGO_INITDB_ROOT_USERNAME = "fleetflow"
+
+[processes]
+  # bind_ip_all is required for the machine to be reachable over Fly's 6PN.
+  app = "mongod --bind_ip_all --quiet"
+
+[[mounts]]
+  source = "mongo_data"
+  destination = "/data/db"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

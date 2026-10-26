@@ -1,4 +1,7 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
@@ -42,20 +45,37 @@ const httpServer = createServer(app);
 app.set('trust proxy', 1);
 
 // Production Hardening Middleware
+// The built SPA is served from this same origin in production, so the CSP must
+// allow the assets it loads: Google Fonts and Clerk's frontend SDK / bot check.
+const clerkOrigins = [
+  'https://*.clerk.accounts.dev',
+  'https://*.clerk.com',
+  'https://clerk-telemetry.com'
+];
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", ...(process.env.FRONTEND_URL || '').split(',')],
-      fontSrc: ["'self'"],
+      scriptSrc: ["'self'", ...clerkOrigins, 'https://challenges.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      imgSrc: ["'self'", "data:", "https:", 'blob:'],
+      connectSrc: [
+        "'self'",
+        'wss:',
+        'ws:',
+        ...clerkOrigins,
+        ...(process.env.FRONTEND_URL || '').split(',')
+      ],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"]
+      frameSrc: [...clerkOrigins, 'https://challenges.cloudflare.com'],
+      workerSrc: ["'self'", 'blob:']
     }
   },
+  // Clerk's OAuth flow can hand off through a popup; strict "same-origin" here
+  // would sever the handle it uses to return to the app.
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -144,8 +164,11 @@ app.set('io', io);
 // Middleware - Strict CORS with credentials
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.) only in development
-    if (!origin && process.env.NODE_ENV === 'development') {
+    // A missing Origin header is not a cross-origin browser request: it is a
+    // same-origin call from the served SPA, a health probe, or a plain
+    // navigation. Those are handled by the allowlist below only when an
+    // Origin is actually present, so allow the header-less case everywhere.
+    if (!origin) {
       return callback(null, true);
     }
     
@@ -330,6 +353,33 @@ if (process.env.NODE_ENV === 'development') {
       dbReadyState: dbStates[mongoose.connection.readyState] || 'unknown',
     });
   });
+}
+
+// Serve the built frontend from the same origin (single deployable unit).
+// Missing build is fine in development, where Vite serves the SPA instead.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.resolve(__dirname, '../frontend/dist');
+const indexHtml = path.join(clientDist, 'index.html');
+
+if (fs.existsSync(indexHtml)) {
+  app.use(
+    express.static(clientDist, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    })
+  );
+
+  // Client-side routing: any non-API GET returns the SPA shell.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') return next();
+    res.sendFile(indexHtml);
+  });
+
+  console.log(`📦 Serving frontend build from ${clientDist}`);
 }
 
 // 404 Handler
