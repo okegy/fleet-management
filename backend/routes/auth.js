@@ -12,6 +12,7 @@ import {
   getAllUsers,
   deactivateUser,
 } from '../controllers/userController.js';
+import { clerkLogin } from '../controllers/clerkController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { 
   validateRegister, 
@@ -25,6 +26,7 @@ const router = express.Router();
 // Public routes (no authentication needed)
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
+router.post('/clerk', clerkLogin);
 
 // Protected routes (authentication required)
 router.post('/logout', authenticate, logout);

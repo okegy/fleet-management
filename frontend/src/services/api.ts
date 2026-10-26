@@ -17,7 +17,10 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Avoid a reload loop: the auth check on mount is expected to 401 when
+    // signed out, and we are already on /login.
+    const isAuthCheck = (error.config?.url || '').includes('/auth/profile');
+    if (error.response?.status === 401 && !isAuthCheck && window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -27,6 +30,7 @@ api.interceptors.response.use(
 export const fleetService = {
   // ===== AUTH =====
   login: (credentials: any) => api.post('/auth/login', credentials),
+  clerkLogin: (token: string) => api.post('/auth/clerk', { token }),
   register: (data: any) => api.post('/auth/register', data),
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/auth/profile'),

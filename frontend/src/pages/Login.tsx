@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Truck, Mail, Lock, ArrowLeft, Github, Chrome, ShieldCheck } from 'lucide-react';
+import { Truck, Mail, Lock, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { fleetService } from '../services/api';
+import ClerkSocialButtons from '../components/ClerkSocialButtons';
 import toast from 'react-hot-toast';
 
 export default function Login() {
@@ -122,16 +123,7 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button className="flex items-center justify-center gap-3 px-4 py-4 border border-slate-100 rounded-[1.5rem] hover:bg-slate-50 transition-all text-xs font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest">
-                <Chrome size={18} />
-                Google
-              </button>
-              <button className="flex items-center justify-center gap-3 px-4 py-4 border border-slate-100 rounded-[1.5rem] hover:bg-slate-50 transition-all text-xs font-black text-slate-500 hover:text-slate-900 uppercase tracking-widest">
-                <Github size={18} />
-                GitHub
-              </button>
-            </div>
+            <ClerkSocialButtons />
           </div>
 
           <p className="text-center text-sm text-slate-400 mt-12 font-bold tracking-tight">

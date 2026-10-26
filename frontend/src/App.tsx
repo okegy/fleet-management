@@ -16,6 +16,8 @@ import Landing from './pages/Landing';
 import Profile from './pages/Profile';
 import TripTracking from './pages/TripTracking';
 import FuelExpenses from './pages/FuelExpenses';
+import SSOCallback from './pages/SSOCallback';
+import ClerkTokenBridge from './components/ClerkTokenBridge';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -61,6 +63,8 @@ function AppRoutes() {
         <Route path="profile" element={<Profile />} />
       </Route>
 
+      <Route path="/sso-callback" element={<SSOCallback />} />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -69,6 +73,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+      <ClerkTokenBridge />
       <Toaster 
         position="top-right"
         toastOptions={{

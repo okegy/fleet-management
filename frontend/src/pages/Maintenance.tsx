@@ -416,7 +416,7 @@ export default function Maintenance() {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1.5 text-sm text-slate-600">
                               <Calendar size={14} className="text-slate-400" />
-                              {new Date(log.date).toLocaleDateString()}
+                              {new Date(log.startDate || log.date).toLocaleDateString()}
                             </div>
                           </td>
                           <td className="px-6 py-4">

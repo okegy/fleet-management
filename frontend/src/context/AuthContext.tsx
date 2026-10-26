@@ -53,6 +53,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Also clear any Clerk (Google/GitHub) session, otherwise the token
+      // bridge would immediately sign the user back in.
+      try {
+        const clerk = (window as any).Clerk;
+        if (clerk?.signOut) await clerk.signOut();
+      } catch {
+        // Clerk not configured or not loaded
+      }
       // Clear local state regardless
       setIsAuthenticated(false);
       setUser(null);
