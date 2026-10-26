@@ -20,6 +20,15 @@ browser ─── https://fleetflow.fly.dev ───┐
 | `fly.toml` | Web + API app (`fleetflow`), port 8080, one warm machine |
 | `deploy/mongo/fly.toml` | Private MongoDB app (`fleetflow-db`) with a persistent volume |
 | `.dockerignore` | Keeps `node_modules`, build output, and `.env` files out of the image |
+| `deploy.sh` | One-command idempotent deploy of both apps + seeding |
+
+## Fast path: `bash deploy.sh`
+
+`deploy.sh` does everything below in one idempotent run — creates both apps, the
+volume, the secrets (generating the Mongo root password and `JWT_SECRET` and
+saving them to the git-ignored `deploy.secrets.env`), deploys the database and
+the app, and seeds the demo data. Rerun it any time; existing resources are left
+alone. The manual steps remain for reference.
 
 ## 1. Apps and database
 
