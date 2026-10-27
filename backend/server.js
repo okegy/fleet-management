@@ -12,6 +12,7 @@ import morgan from 'morgan';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import User from './models/User.js';
 import mongoSanitize from 'express-mongo-sanitize';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -210,7 +211,7 @@ app.use(mongoSanitize({
 connectDB();
 
 // SECURITY: Socket.io authentication middleware
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   try {
     // ✅ SECURITY FIX: Check HTTPOnly cookie first (preferred), fall back to auth token
     let token = socket.handshake.headers.cookie
@@ -233,8 +234,18 @@ io.use((socket, next) => {
     
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
-    logger.info('Socket authenticated', { userId: decoded.userId, socketId: socket.id });
+    const user = await User.findById(decoded.userId).select('tokenVersion active organizationId role');
+
+    if (!user || !user.active || decoded.tokenVersion !== user.tokenVersion) {
+      return next(new Error('Invalid or expired token'));
+    }
+
+    socket.user = {
+      userId: String(user._id),
+      role: user.role,
+      organizationId: String(user.organizationId)
+    };
+    logger.info('Socket authenticated', { userId: socket.user.userId, organizationId: socket.user.organizationId, socketId: socket.id });
     next();
   } catch (error) {
     logSecurityEvent('SOCKET_AUTH_FAILED', {
